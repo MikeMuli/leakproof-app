@@ -1,0 +1,251 @@
+:root {
+  --bg: #F2F5F6;
+  --surface: #FFFFFF;
+  --surface-sunk: #E8EDEF;
+  --line: #DCE4E7;
+  --line-strong: #C6D2D6;
+
+  --ink: #0C1B21;
+  --ink-2: #3A5058;
+  --ink-3: #7A9098;
+
+  --settled: #0E7C6B;
+  --settled-bg: #E7F4F1;
+  --fees: #B4762A;
+  --fees-bg: #FBF0E3;
+  --disputed: #C43D30;
+  --disputed-bg: #FBEAE8;
+  --transit: #2B6CB0;
+  --transit-bg: #E9F1FA;
+
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 2px rgba(12,27,33,.05);
+  --shadow: 0 1px 2px rgba(12,27,33,.05), 0 8px 24px -12px rgba(12,27,33,.18);
+
+  --font-display: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+
+  --ease-out: cubic-bezier(.2, .7, .3, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0B1418;
+    --surface: #111E23;
+    --surface-sunk: #0A1216;
+    --line: #1E3037;
+    --line-strong: #2A4048;
+
+    --ink: #E8F0F2;
+    --ink-2: #A3B8BF;
+    --ink-3: #6E868E;
+
+    --settled: #3FBFA5;
+    --settled-bg: rgba(63,191,165,.12);
+    --fees: #D9A044;
+    --fees-bg: rgba(217,160,68,.12);
+    --disputed: #E8695A;
+    --disputed-bg: rgba(232,105,90,.12);
+    --transit: #5B9BD8;
+    --transit-bg: rgba(91,155,216,.12);
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { height: 100%; -webkit-text-size-adjust: 100%; }
+html, body { max-width: 100vw; }
+
+body {
+  min-height: 100%;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1 { font-size: clamp(27px, 5vw, 40px); line-height: 1.08; letter-spacing: -.035em; font-weight: 700; margin: 0 0 10px; text-wrap: balance; }
+h2 { font-size: 13px; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin: 34px 0 12px; font-family: var(--font-display); }
+h3 { font-family: var(--font-display); letter-spacing: -.02em; font-weight: 600; margin: 0; }
+.lede { color: var(--ink-2); font-size: 16px; max-width: 56ch; margin: 0 0 22px; }
+.sub { color: var(--ink-3); font-size: 13px; margin: 0; }
+
+a { color: inherit; text-decoration: none; }
+
+::selection { background: var(--settled); color: #fff; }
+
+:focus-visible {
+  outline: 2px solid var(--settled);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+button {
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s, background .12s;
+}
+button:active:not(:disabled) { transform: translateY(1px); }
+button:disabled { cursor: not-allowed; opacity: .4; box-shadow: none; }
+
+input, select, textarea {
+  transition: border-color .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* ---------- logo mark ---------- */
+.lp-mark { display: inline-flex; align-items: center; gap: 9px; font-weight: 680; letter-spacing: -.025em; font-size: 16px; }
+.lp-mark i { width: 9px; height: 20px; border-radius: 3px; background: linear-gradient(var(--settled) 55%, var(--disputed) 55%); }
+
+/* ---------- shared component classes ---------- */
+
+.lp-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.lp-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  font-weight: 530;
+  font-size: 13.5px;
+}
+.lp-btn:hover:not(:disabled) { box-shadow: var(--shadow); }
+
+.lp-btn-primary {
+  background: var(--settled); border-color: var(--settled); color: #fff; font-weight: 600;
+}
+
+.lp-btn-ghost {
+  background: transparent; border-color: transparent; color: var(--ink-2);
+}
+.lp-btn-ghost:hover:not(:disabled) { background: var(--surface-sunk); box-shadow: none; }
+
+.lp-btn-danger-outline {
+  background: none; border: 1px solid var(--disputed); color: var(--disputed);
+}
+.lp-btn-danger-outline:hover:not(:disabled) { background: var(--disputed-bg); }
+
+.lp-input {
+  min-height: 44px; padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  font-size: 16px; /* iOS Safari auto-zooms inputs below 16px */
+}
+.lp-input:focus-visible, .lp-input:focus {
+  outline: none;
+  border-color: var(--settled);
+  box-shadow: 0 0 0 3px var(--settled-bg);
+}
+
+.lp-money { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+
+/* ---------- stat card: left accent bar is this product's established signature
+   (carried over verbatim from the validated prototype), not a generic template default ---------- */
+.lp-stat {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px 18px; box-shadow: var(--shadow); border-left: 3px solid var(--c, var(--line-strong));
+}
+.lp-stat .l { font-size: 12px; color: var(--ink-3); font-weight: 560; letter-spacing: .02em; }
+.lp-stat .v { font-size: 29px; font-weight: 600; margin: 7px 0 3px; color: var(--c, var(--ink)); }
+.lp-stat .f { font-size: 12.5px; color: var(--ink-3); line-height: 1.45; }
+
+.lp-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+  background: var(--surface);
+  transition: border-color .15s var(--ease-out);
+}
+.lp-row:hover { border-color: var(--line-strong); }
+
+.lp-row-head {
+  width: 100%; text-align: left;
+  padding: 13px 14px;
+  background: none; border: none;
+  display: flex; justify-content: space-between; align-items: center;
+  border-radius: 0;
+}
+.lp-row-head:hover { background: var(--surface-sunk); }
+
+.lp-row-detail-wrap {
+  max-height: 0; opacity: 0; overflow: hidden;
+  transition: max-height .32s var(--ease-out), opacity .22s var(--ease-out);
+}
+.lp-row-detail-wrap.open { max-height: 2000px; opacity: 1; }
+.lp-row-detail-inner { overflow: hidden; }
+
+.lp-pulse { animation: lp-pulse-kf 900ms var(--ease-out); }
+@keyframes lp-pulse-kf {
+  0% { background-color: var(--settled-bg); }
+  100% { background-color: transparent; }
+}
+
+.lp-tab {
+  padding: 10px 13px; border: none; background: none; border-radius: 0;
+  color: var(--ink-3); font-weight: 540; font-size: 14px;
+  border-bottom: 2px solid transparent;
+  transition: color .15s var(--ease-out), border-color .15s var(--ease-out);
+}
+.lp-tab:hover { color: var(--ink); }
+.lp-tab.active { color: var(--ink); }
+.lp-tab em { font-style: normal; font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); margin-left: 5px; }
+
+.lp-menu { position: relative; }
+.lp-menu-trigger {
+  list-style: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0; font-size: 18px; user-select: none;
+}
+.lp-menu-trigger::-webkit-details-marker { display: none; }
+.lp-menu-panel {
+  position: absolute; right: 0; top: calc(100% + 6px);
+  min-width: 220px; z-index: 40;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 6px;
+  display: flex; flex-direction: column;
+}
+.lp-menu-item {
+  display: flex; align-items: center; width: 100%; text-align: left;
+  padding: 11px 12px; min-height: 44px;
+  border-radius: var(--radius-sm); border: none; background: none; color: var(--ink);
+  font-size: 14px;
+}
+.lp-menu-item:hover { background: var(--surface-sunk); }
+
+/* ---------- pill / badge — matches prototype's classification pill exactly ---------- */
+.lp-pill {
+  font-size: 11.5px; padding: 3px 9px; border-radius: 7px; font-weight: 540; white-space: nowrap;
+  background: color-mix(in srgb, var(--c) 13%, transparent); color: var(--c);
+  border: 1px solid color-mix(in srgb, var(--c) 28%, transparent);
+}
+.lp-badge {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 560; padding: 2px 8px; border-radius: 99px;
+}
+
+/* ---------- note ---------- */
+.lp-note {
+  font-size: 13px; color: var(--ink-2); background: var(--surface-sunk); border-radius: 12px;
+  padding: 13px 16px; margin: 14px 0; border-left: 3px solid var(--line-strong);
+}
+.lp-note b { font-weight: 620; color: var(--ink); }

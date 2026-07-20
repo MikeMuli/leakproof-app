@@ -1,0 +1,4 @@
+Order/Adjustment ID,Settlement Time,Order Status,Product Name,SKU ID,Quantity,Order Amount,Shipping Fee,Platform Commission,Payment Processing Fee,Settlement Amount
+TT9000001,2026-05-15,Delivered,Serum Vit-C 30ml,SV-30,1,55.00,4.90,4.13,1.10,45.87
+TT9000002,2026-05-20,Delivered,Phone Grip Ring,PGR-01,2,30.00,4.90,2.25,0.60,22.25
+TT9000003,2026-06-05,Cancelled,Kids Sandal 28,KS-28,1,45.00,4.90,3.38,0.90,35.82
