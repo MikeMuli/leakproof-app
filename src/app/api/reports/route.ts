@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   // gatherReportData runs on the RLS-scoped client — a shopId for another seller's shop
   // simply resolves to zero shops here, never leaks their data. No extra check needed.
   const data = await gatherReportData(supabase, seller.id, shopId, month);
-  const filenameBase = `leakproof-${month}${shopId ? "" : "-all-shops"}`;
+  const filenameBase = `payoutcheck-${month}${shopId ? "" : "-all-shops"}`;
 
   if (format === "xlsx") {
     const buf = buildXlsxReport(data);

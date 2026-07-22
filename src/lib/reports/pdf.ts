@@ -28,7 +28,7 @@ export async function buildPdfReport(data: ReportData): Promise<Uint8Array> {
     page.drawText(str, { x, y, size, font, color });
   }
 
-  text("LeakProof — Monthly Statement", MARGIN, 18, bold);
+  text("PayoutCheck — Monthly Statement", MARGIN, 18, bold);
   y -= 26;
   text(`Period: ${data.month}`, MARGIN, 11, regular, rgb(0.4, 0.45, 0.5));
   y -= 30;

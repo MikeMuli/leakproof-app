@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Copy, Check } from "lucide-react";
+import TopBar from "../../components/TopBar";
+import { PageSkeleton } from "../../components/Skeletons";
 
 interface Invite {
   id: string; email: string; code: string; created_at: string; used_at: string | null; expires_at: string;
@@ -48,28 +51,34 @@ export default function InvitesPage() {
     setTimeout(() => setCopiedId(null), 1500);
   }
 
-  if (loading) return <main style={{ padding: 40 }}>Loading…</main>;
+  if (loading) return (
+    <>
+      <TopBar current="dashboard" isAdmin />
+      <PageSkeleton />
+    </>
+  );
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "44px 20px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 22 }}>
-        <h1 style={{ fontSize: 24, margin: 0 }}>Invites</h1>
-        <a href="/dashboard" className="lp-btn lp-btn-ghost" style={{ fontSize: 13 }}>← Dashboard</a>
-      </div>
-
-      {error && <p style={{ color: "var(--disputed)", marginBottom: 16 }}>{error}</p>}
-
-      <form onSubmit={createInvite} style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-          placeholder="seller@email.com" className="lp-input" style={{ flex: 1 }} />
-        <button type="submit" disabled={busy} className="lp-btn lp-btn-primary">{busy ? "…" : "Create invite"}</button>
-      </form>
-
+    <>
+      <TopBar current="dashboard" title="Invites · admin" isAdmin />
+      <main className="lp-page">
+        <div className="lp-page-grid">
+        <aside className="lp-page-aside">
+          <h2>Invites</h2>
+          <p className="sub">Create a one-time signup link for a new seller. PayoutCheck is invite-only, so this is the only way in.</p>
+          <form onSubmit={createInvite} style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+              placeholder="seller@email.com" className="lp-input" />
+            <button type="submit" disabled={busy} className="lp-btn lp-btn-primary">{busy ? "…" : "Create invite"}</button>
+          </form>
+          {error && <p role="alert" style={{ color: "var(--disputed)", marginTop: 12, fontSize: 13 }}>{error}</p>}
+        </aside>
+        <div className="lp-page-main">
       {invites.map((inv) => {
         const expired = new Date(inv.expires_at) < new Date();
         const status = inv.used_at ? "used" : expired ? "expired" : "active";
         return (
-          <div key={inv.id} className="lp-card" style={{ padding: 13, marginBottom: 8 }}>
+          <div key={inv.id} className="lp-card" style={{ padding: 13 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <b>{inv.email}</b>
@@ -81,7 +90,9 @@ export default function InvitesPage() {
               </div>
               {status === "active" && (
                 <button onClick={() => copy(inv)} className="lp-btn" style={{ fontSize: 12.5 }}>
-                  {copiedId === inv.id ? "Copied ✓" : "Copy invite link"}
+                  {copiedId === inv.id
+                    ? <><Check size={14} strokeWidth={2.25} aria-hidden style={{ color: "var(--settled)" }} /> Copied</>
+                    : <><Copy size={14} strokeWidth={1.75} aria-hidden /> Copy invite link</>}
                 </button>
               )}
             </div>
@@ -93,6 +104,9 @@ export default function InvitesPage() {
         );
       })}
       {invites.length === 0 && !error && <p style={{ color: "var(--ink-3)" }}>No invites yet.</p>}
-    </main>
+        </div>
+        </div>
+      </main>
+    </>
   );
 }

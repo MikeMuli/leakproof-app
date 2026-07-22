@@ -11,16 +11,17 @@ export default async function DashboardPage() {
 
   const { data: seller } = await supabase
     .from("sellers").select("id").eq("auth_user_id", user.id).maybeSingle();
-  if (!seller) redirect("/upload");
+  if (!seller) redirect("/onboarding");
 
-  const { data: shops } = await supabase.from("shops").select("id, shop_name").eq("seller_id", seller.id);
+  const { data: shops } = await supabase.from("shops").select("id, shop_name, platform").eq("seller_id", seller.id);
   const shopIds = (shops ?? []).map((s) => s.id);
-  if (shopIds.length === 0) redirect("/upload");
+  if (shopIds.length === 0) redirect("/onboarding");
+  const platformByShopId = new Map((shops ?? []).map((s) => [s.id, s.platform]));
 
   const { data: orders, error } = await supabase
     .from("orders")
     .select(`
-      id, platform_order_id, created_at_platform, status, buyer_total_cents,
+      id, shop_id, platform_order_id, created_at_platform, status, buyer_total_cents,
       expected_settlements ( commission_cents, transaction_fee_cents, shipping_cents, voucher_cents, net_cents, fee_table_version ),
       discrepancies ( id, bucket, detector_type, gap_cents, state, detected_at ),
       settlement_lines ( type, amount_cents, raw_description )
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
     return <main style={{ padding: 40, fontFamily: "system-ui" }}>Failed to load dashboard: {error.message}</main>;
   }
 
-  if (!orders || orders.length === 0) redirect("/upload");
+  if (!orders || orders.length === 0) redirect("/onboarding");
 
   const rows: OrderRow[] = orders.map((o) => {
     const exp = Array.isArray(o.expected_settlements) ? o.expected_settlements[0] : o.expected_settlements;
@@ -40,6 +41,7 @@ export default async function DashboardPage() {
     const disc = discList.filter(Boolean).sort((a, b) => (a && b ? Date.parse(b.detected_at) - Date.parse(a.detected_at) : 0))[0];
     return {
       id: o.id,
+      platform: platformByShopId.get(o.shop_id) ?? "shopee",
       platformOrderId: o.platform_order_id,
       date: o.created_at_platform ?? "",
       status: o.status,

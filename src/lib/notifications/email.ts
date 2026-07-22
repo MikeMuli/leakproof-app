@@ -17,7 +17,7 @@ export const emailChannel: NotificationChannel = {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM ?? "LeakProof <onboarding@resend.dev>",
+        from: process.env.RESEND_FROM ?? "PayoutCheck <onboarding@resend.dev>",
         to: [to],
         subject,
         text: body,

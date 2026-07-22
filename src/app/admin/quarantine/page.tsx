@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin";
+import TopBar from "../../components/TopBar";
 
 const SLA_HOURS = 48; // PRD A1: target turnaround from quarantine to a shipped parser version
 
@@ -27,11 +28,10 @@ export default async function QuarantinePage() {
   const now = Date.now();
 
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "44px 20px 90px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-        <h1 style={{ fontSize: 24, margin: 0 }}>Quarantined uploads</h1>
-        <a href="/dashboard" className="lp-btn lp-btn-ghost" style={{ fontSize: 13 }}>← Dashboard</a>
-      </div>
+    <>
+      <TopBar current="dashboard" title="Quarantine queue · admin" isAdmin />
+      <main className="lp-shell" style={{ padding: "20px 20px 90px" }}>
+      <h2 style={{ margin: "0 0 4px" }}>Quarantined uploads</h2>
       <p style={{ color: "var(--ink-2)", marginBottom: 22, fontSize: 14 }}>
         Files no parser recognized. Each one needs either a new parser version or a fix
         within {SLA_HOURS}h — a wrong number is worse than a hard failure.
@@ -66,6 +66,7 @@ export default async function QuarantinePage() {
           </div>
         );
       })}
-    </main>
+      </main>
+    </>
   );
 }

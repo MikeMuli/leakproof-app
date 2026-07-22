@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import TopBar from "../components/TopBar";
+import PlatformBadge from "../components/PlatformBadge";
+import LedgerMotif from "../components/LedgerMotif";
+import { CheckCircle2, XCircle, MinusCircle, Copy, Check, ChevronDown } from "lucide-react";
 
 export type DiscrepancyState = "detected" | "auto_resolved" | "seller_dismissed" | "claim_generated" | "claim_filed" | "recovered" | "rejected";
 const OPEN_DISPUTE_STATES: DiscrepancyState[] = ["detected", "claim_generated", "claim_filed"];
 
 export interface OrderRow {
   id: string;
+  platform: string;
   platformOrderId: string;
   date: string;
   status: string;
@@ -30,6 +34,8 @@ export interface OrderRow {
 const rm = (c: number) =>
   (c < 0 ? "−" : "") + "RM" + (Math.abs(c) / 100).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const PLATFORM_LABEL: Record<string, string> = { shopee: "Shopee", tiktok: "TikTok Shop", lazada: "Lazada" };
+
 const DETECTOR_COPY: Record<string, [string, string]> = {
   commission_on_cancelled: ["Commission charged on a cancelled order", "The order was cancelled, but the settlement still carries commission and transaction fees with no matching reversal line."],
   shipping_overcharge: ["Shipping charged above the quoted rate", "The shipping deducted exceeds the expected rate for this order."],
@@ -45,28 +51,27 @@ const STATE_LABEL: Partial<Record<DiscrepancyState, string>> = {
   seller_dismissed: "Dismissed",
 };
 
-export default function DashboardView({ rows, shopName, quarantineCount = 0, isAdmin = false }: { rows: OrderRow[]; shopName: string; quarantineCount?: number; isAdmin?: boolean }) {
+export default function DashboardView(props: { rows: OrderRow[]; shopName: string; quarantineCount?: number; isAdmin?: boolean }) {
+  return (
+    <Suspense fallback={null}>
+      <DashboardInner {...props} />
+    </Suspense>
+  );
+}
+
+function DashboardInner({ rows, shopName, quarantineCount = 0, isAdmin = false }: { rows: OrderRow[]; shopName: string; quarantineCount?: number; isAdmin?: boolean }) {
   const router = useRouter();
-  const supabase = createClient();
-  const [tab, setTab] = useState<"DISPUTABLE" | "EVERYTHING">("DISPUTABLE");
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [digestStatus, setDigestStatus] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDetailsElement>(null);
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get("tab") === "everything" ? "EVERYTHING" : "DISPUTABLE";
+  const [tab, setTabState] = useState<"DISPUTABLE" | "EVERYTHING">(urlTab);
 
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (menuRef.current?.open && !menuRef.current.contains(e.target as Node)) menuRef.current.open = false;
-    }
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
-  }, []);
-
-  async function sendDigestNow() {
-    setDigestStatus("Sending…");
-    const res = await fetch("/api/notifications/digest", { method: "POST" });
-    const json = await res.json();
-    setDigestStatus(json.ok ? "Sent — check your email." : `Failed: ${json.errors?.join("; ") ?? json.error}`);
+  function setTab(next: "DISPUTABLE" | "EVERYTHING") {
+    setTabState(next);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", next === "EVERYTHING" ? "everything" : "disputable");
+    router.replace(`/dashboard?${params.toString()}`, { scroll: false });
   }
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const isOpenDispute = (r: OrderRow) => r.bucket === "DISPUTABLE" && OPEN_DISPUTE_STATES.includes(r.state);
 
@@ -93,44 +98,10 @@ export default function DashboardView({ rows, shopName, quarantineCount = 0, isA
     { l: "Worth disputing", v: agg.disp, c: "var(--disputed)" },
   ];
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
-
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px 90px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22, gap: 10 }}>
-        <span className="lp-mark" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <i /> LeakProof — {shopName}
-        </span>
-        <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-          <a href="/upload" className="lp-btn lp-btn-primary">Upload</a>
-          <details className="lp-menu" ref={menuRef}>
-            <summary className="lp-btn lp-btn-ghost lp-menu-trigger" aria-label="More actions">⋯</summary>
-            <div className="lp-menu-panel">
-              <a href="/shops" className="lp-menu-item">Manage shops</a>
-              <a href="/reports" className="lp-menu-item">Reports</a>
-              {isAdmin && <a href="/admin/invites" className="lp-menu-item">Invites <span className="lp-badge" style={{ background: "var(--transit-bg)", color: "var(--transit)", marginLeft: 6 }}>admin</span></a>}
-              {isAdmin && <a href="/admin/quarantine" className="lp-menu-item">Quarantine queue <span className="lp-badge" style={{ background: "var(--transit-bg)", color: "var(--transit)", marginLeft: 6 }}>admin</span></a>}
-              <button onClick={sendDigestNow} className="lp-menu-item">{digestStatus ?? "Send weekly digest now"}</button>
-              <div style={{ borderTop: "1px solid var(--line)", margin: "4px 0" }} />
-              <button onClick={signOut} className="lp-menu-item" style={{ color: "var(--disputed)" }}>Sign out</button>
-            </div>
-          </details>
-        </div>
-      </div>
-
-      {quarantineCount > 0 && (
-        <a href="/admin/quarantine" className="lp-card" style={{
-          display: "block", background: "var(--fees-bg)", borderColor: "var(--fees)", color: "var(--fees)",
-          padding: "11px 15px", marginBottom: 20, fontSize: 13.5, fontWeight: 540,
-        }}>
-          {quarantineCount} upload{quarantineCount > 1 ? "s" : ""} couldn&apos;t be read — needs a parser fix →
-        </a>
-      )}
-
+    <>
+      <TopBar current="dashboard" title={shopName} isAdmin={isAdmin} quarantineCount={quarantineCount} />
+      <main className="lp-shell" style={{ padding: "20px 20px 90px" }}>
       <h1 style={{ fontSize: 27, marginBottom: 5 }}>
         Where your <span className="lp-money">{rm(agg.settledGmv)}</span> in settled orders went
       </h1>
@@ -170,9 +141,18 @@ export default function DashboardView({ rows, shopName, quarantineCount = 0, isA
         {list.map((r) => (
           <Row key={r.id} row={r} open={openId === r.id} onToggle={() => setOpenId(openId === r.id ? null : r.id)} />
         ))}
-        {list.length === 0 && <p style={{ color: "var(--ink-3)", padding: "20px 0" }}>Nothing here.</p>}
+        {list.length === 0 && (
+          <div className="lp-card" style={{ padding: 28, textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><LedgerMotif /></div>
+            <p style={{ marginBottom: 12 }}>
+              {tab === "DISPUTABLE" ? "Nothing to dispute right now — good sign." : "No settled orders in this view yet."}
+            </p>
+            <a href="/upload" className="lp-btn lp-btn-primary">Upload another settlement file</a>
+          </div>
+        )}
       </div>
-    </main>
+      </main>
+    </>
   );
 }
 
@@ -192,14 +172,19 @@ function Row({ row: r, open, onToggle }: { row: OrderRow; open: boolean; onToggl
   return (
     <div className={`lp-row ${justChanged ? "lp-pulse" : ""}`}>
       <button onClick={onToggle} className="lp-row-head" aria-expanded={open}>
-        <span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <PlatformBadge platform={r.platform} size={18} />
           <span className="lp-money" style={{ fontSize: 13 }}>{r.platformOrderId}</span>
           <span style={{ color: "var(--ink-3)", fontSize: 12, marginLeft: 10 }}>{r.date}</span>
           {r.detectorType && <span style={{ marginLeft: 10, fontSize: 11, color: "var(--disputed)" }}>{r.detectorType.replace(/_/g, " ")}</span>}
           {STATE_LABEL[r.state] && <span style={{ marginLeft: 10, fontSize: 11, color: "var(--transit)" }}>{STATE_LABEL[r.state]}</span>}
         </span>
-        <span className="lp-money" style={{ color: r.bucket === "DISPUTABLE" ? "var(--disputed)" : "var(--ink)", fontWeight: 560 }}>
-          {rm(r.bucket === "DISPUTABLE" ? r.gapCents : r.netCents)}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+          <span className="lp-money" style={{ color: r.bucket === "DISPUTABLE" ? "var(--disputed)" : "var(--ink)", fontWeight: 560 }}>
+            {rm(r.bucket === "DISPUTABLE" ? r.gapCents : r.netCents)}
+          </span>
+          <ChevronDown size={16} strokeWidth={2} aria-hidden
+            style={{ color: "var(--ink-3)", transition: "transform .25s var(--ease-out)", transform: open ? "rotate(180deg)" : "none", flexShrink: 0 }} />
         </span>
       </button>
       <div className={`lp-row-detail-wrap ${open ? "open" : ""}`} aria-hidden={!open} inert={!open ? true : undefined}>
@@ -250,6 +235,13 @@ Shortfall claimed  ${rm(row.gapCents)}
 
 Please review and credit the shortfall of ${rm(row.gapCents)}.`;
 
+  const [copied, setCopied] = useState(false);
+  function copyPack() {
+    navigator.clipboard.writeText(packText ?? "");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  }
+
   async function generatePack() {
     setShowPack(true);
     if (row.state === "detected" && row.discrepancyId) {
@@ -290,14 +282,16 @@ Please review and credit the shortfall of ${rm(row.gapCents)}.`;
           {showPack && (
             <div style={{ marginTop: 10 }}>
               <textarea readOnly value={packText ?? ""} className="lp-input" style={{ width: "100%", height: 210, fontFamily: "var(--font-mono)", fontSize: 12 }} />
-              <button onClick={() => navigator.clipboard.writeText(packText ?? "")} className="lp-btn" style={{ marginTop: 8 }}>Copy</button>
+              <button onClick={copyPack} className="lp-btn" style={{ marginTop: 8 }}>
+                {copied ? <><Check size={15} strokeWidth={2.25} aria-hidden style={{ color: "var(--settled)" }} /> Copied</> : <><Copy size={15} strokeWidth={1.75} aria-hidden /> Copy ticket</>}
+              </button>
             </div>
           )}
 
           {row.state === "claim_generated" && (
             <div style={{ marginTop: 10 }}>
               <button disabled={busy} onClick={() => mark("claim_filed")} className="lp-btn" style={{ background: "var(--transit)", borderColor: "var(--transit)", color: "#fff" }}>
-                I&apos;ve filed this with {row.platformOrderId.slice(0, 2) === "TT" ? "TikTok" : "the platform"}
+                I&apos;ve filed this with {PLATFORM_LABEL[row.platform] ?? "the platform"}
               </button>
             </div>
           )}
@@ -310,14 +304,15 @@ Please review and credit the shortfall of ${rm(row.gapCents)}.`;
           )}
 
           {(row.state === "recovered" || row.state === "rejected" || row.state === "seller_dismissed") && (
-            <p style={{ marginTop: 10, fontSize: 13.5, color: row.state === "recovered" ? "var(--settled)" : "var(--ink-3)", fontWeight: 540 }}>
-              {row.state === "recovered" && `✓ Recovered ${rm(row.gapCents)}`}
-              {row.state === "rejected" && "✕ Platform rejected this claim"}
-              {row.state === "seller_dismissed" && "Marked as not worth disputing"}
+            <p style={{ marginTop: 10, fontSize: 13.5, display: "inline-flex", alignItems: "center", gap: 7,
+              color: row.state === "recovered" ? "var(--settled)" : "var(--ink-3)", fontWeight: 540 }}>
+              {row.state === "recovered" && <><CheckCircle2 size={16} strokeWidth={2} aria-hidden /> Recovered {rm(row.gapCents)}</>}
+              {row.state === "rejected" && <><XCircle size={16} strokeWidth={2} aria-hidden /> Platform rejected this claim</>}
+              {row.state === "seller_dismissed" && <><MinusCircle size={16} strokeWidth={2} aria-hidden /> Marked as not worth disputing</>}
             </p>
           )}
 
-          {err && <p style={{ color: "var(--disputed)", fontSize: 12, marginTop: 6 }}>{err}</p>}
+          {err && <p role="alert" style={{ color: "var(--disputed)", fontSize: 12, marginTop: 6 }}>{err}</p>}
         </div>
       )}
     </div>

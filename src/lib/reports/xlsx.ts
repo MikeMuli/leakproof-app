@@ -7,7 +7,7 @@ export function buildXlsxReport(data: ReportData): Buffer {
   const wb = XLSX.utils.book_new();
 
   const summaryRows = [
-    ["LeakProof — Monthly Statement", data.month],
+    ["PayoutCheck — Monthly Statement", data.month],
     [],
     ["Shop", "Settled (RM)", "Fees (RM)", "Flagged/disputable (RM)", "Recovered (RM)"],
     ...data.shops.map((s) => [s.shopName, rm(s.settledCents), rm(s.feesCents), rm(s.flaggedCents), rm(s.recoveredCents)]),

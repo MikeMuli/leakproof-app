@@ -7,7 +7,9 @@
 
   --ink: #0C1B21;
   --ink-2: #3A5058;
-  --ink-3: #7A9098;
+  /* #5E6D68 = 5.1:1 on --bg (passes WCAG AA). The prototype re-theme had reverted this to
+     #7A9098 (~3.4:1, fails) — it's used for dates/labels/.sub everywhere, so this matters. */
+  --ink-3: #5E6D68;
 
   --settled: #0E7C6B;
   --settled-bg: #E7F4F1;
@@ -21,8 +23,16 @@
   --radius-sm: 10px;
   --radius: 14px;
   --radius-lg: 20px;
-  --shadow-sm: 0 1px 2px rgba(12,27,33,.05);
-  --shadow: 0 1px 2px rgba(12,27,33,.05), 0 8px 24px -12px rgba(12,27,33,.18);
+
+  /* Layered, low-opacity elevation (Mercury/Linear-class) — hairline borders carry most
+     of the separation; shadow is a whisper, not a drop. */
+  --shadow-sm: 0 1px 2px rgba(12,27,33,.04);
+  --shadow: 0 1px 1px rgba(12,27,33,.04), 0 2px 6px rgba(12,27,33,.05);
+  --shadow-lg: 0 2px 4px rgba(12,27,33,.05), 0 12px 32px -8px rgba(12,27,33,.16);
+
+  /* 4px-based spacing scale — systematic rhythm instead of ad-hoc pixel values. */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px;
 
   --font-display: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -52,8 +62,9 @@
     --transit: #5B9BD8;
     --transit-bg: rgba(91,155,216,.12);
 
-    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
-    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.35);
+    --shadow: 0 1px 1px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.4);
+    --shadow-lg: 0 2px 4px rgba(0,0,0,.4), 0 12px 32px -8px rgba(0,0,0,.6);
     color-scheme: dark;
   }
 }
@@ -71,11 +82,16 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern", "liga", "cv11";
 }
 
-h1 { font-size: clamp(27px, 5vw, 40px); line-height: 1.08; letter-spacing: -.035em; font-weight: 700; margin: 0 0 10px; text-wrap: balance; }
-h2 { font-size: 13px; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin: 34px 0 12px; font-family: var(--font-display); }
-h3 { font-family: var(--font-display); letter-spacing: -.02em; font-weight: 600; margin: 0; }
+h1 { font-size: clamp(26px, 4.5vw, 38px); line-height: 1.06; letter-spacing: -.035em; font-weight: 680; margin: 0 0 10px; text-wrap: balance; }
+h2 { font-size: 20px; line-height: 1.2; letter-spacing: -.02em; color: var(--ink); font-weight: 620; margin: 0 0 12px; font-family: var(--font-display); text-wrap: balance; }
+h3 { font-family: var(--font-display); letter-spacing: -.015em; font-weight: 600; margin: 0; }
+
+/* The old uppercase-tracked section label kept as an opt-in class for the few places that
+   genuinely want a small kicker — no longer the default h2 look on every page. */
+.lp-eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
 .lede { color: var(--ink-2); font-size: 16px; max-width: 56ch; margin: 0 0 22px; }
 .sub { color: var(--ink-3); font-size: 13px; margin: 0; }
 
@@ -106,6 +122,231 @@ input, select, textarea {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
 
+/* (No page-level entrance animation: any opacity-based whole-page reveal risks a blank
+   screen on a backgrounded/headless tab where CSS animation is paused at frame 0 — an
+   unacceptable failure mode for a money tool. Motion lives in per-element interactions
+   instead, where a paused state is never invisible.) */
+
+/* ---------- settings-style page: two-column split (Mercury/Linear/Stripe pattern) so
+   form pages aren't a narrow column jammed at the top-left with a dead right side. Left
+   rail carries title + description + context; right holds the controls. Stacks on mobile.
+   Fixes the "empty and top-heavy" feel by distributing weight and using the width for
+   real content instead of padding. ---------- */
+.lp-page { max-width: 960px; margin: 0 auto; padding: 40px 20px 90px; }
+.lp-page-grid { display: grid; gap: 32px; align-items: start; }
+@media (min-width: 820px) {
+  .lp-page-grid { grid-template-columns: 300px 1fr; gap: 48px; }
+  .lp-page-aside { position: sticky; top: 84px; }
+}
+.lp-page-aside h2 { margin-bottom: 8px; }
+.lp-page-aside .sub { line-height: 1.6; }
+.lp-page-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* ---------- skeleton shimmer: content-shaped loading placeholders instead of a "Loading…"
+   text flash. Safe on frozen/hidden tabs — the resting state is a visible gray block, not
+   blank. Reduced-motion neutralises the shimmer via the global rule (leaving a static gray). */
+.lp-skel {
+  background: linear-gradient(90deg,
+    var(--surface-sunk) 25%,
+    color-mix(in srgb, var(--surface-sunk) 55%, var(--surface)) 37%,
+    var(--surface-sunk) 63%);
+  background-size: 400% 100%;
+  animation: lp-shimmer 1.4s ease infinite;
+}
+@keyframes lp-shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+/* ---------- public landing page ---------- */
+.lp-land { max-width: 1120px; margin: 0 auto; padding: 0 24px; overflow-x: clip; }
+.lp-land-nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+
+.lp-land-hero {
+  display: grid; grid-template-columns: 1fr; gap: 36px; align-items: center;
+  padding: 40px 0 64px;
+}
+@media (min-width: 900px) { .lp-land-hero { grid-template-columns: 1.18fr .82fr; gap: 60px; padding: 68px 0 92px; } }
+.lp-land-hero-copy { display: flex; flex-direction: column; gap: 18px; }
+.lp-land-hero-vis {
+  border-radius: var(--radius-lg); padding: 36px 32px;
+  background: linear-gradient(155deg, var(--settled-bg) 0%, var(--surface) 48%, var(--fees-bg) 100%);
+  border: 1px solid var(--line);
+}
+@media (min-width: 900px) { .lp-land-hero-vis { transform: rotate(1.5deg); } }
+.lp-land-preview { padding: 18px 20px; position: relative; }
+.lp-land-preview-float { padding: 13px 15px; margin-top: 18px; box-shadow: var(--shadow-lg); }
+
+.lp-land-band { padding: 56px 0; border-top: 1px solid var(--line); }
+.lp-land-cards { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 720px) { .lp-land-cards { grid-template-columns: repeat(3, 1fr); } }
+.lp-land-step-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--settled-bg); color: var(--settled);
+}
+
+.lp-land-cta { text-align: center; padding: 72px 0; border-top: 1px solid var(--line); }
+.lp-land-cta .lede { max-width: 48ch; }
+
+.lp-land-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 28px 0 44px; border-top: 1px solid var(--line); color: var(--ink-3);
+}
+
+/* hero preview extras */
+.lp-land-chip {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 99px;
+  padding: 7px 13px; font-size: 12px; color: var(--ink-2); box-shadow: var(--shadow);
+}
+
+/* "works with" platform strip */
+.lp-land-plat {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 8px 0 40px; text-align: center;
+}
+.lp-land-plat-row { display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; }
+.lp-land-plat-item { display: inline-flex; align-items: center; gap: 9px; font-weight: 560; color: var(--ink-2); }
+
+/* asymmetric editorial split for the leaks section: heading left, cards stacked right */
+.lp-land-split { display: grid; grid-template-columns: 1fr; gap: 28px; }
+@media (min-width: 900px) {
+  .lp-land-split { grid-template-columns: 0.72fr 1.28fr; gap: 60px; align-items: start; }
+  .lp-land-split-head { position: sticky; top: 88px; }
+}
+.lp-land-leak-stack { display: flex; flex-direction: column; gap: 16px; }
+
+/* leak card: text on one side, sample visual on the other (horizontal, not a stacked box) */
+.lp-land-leak-card { display: flex; flex-direction: column; padding: 20px; gap: 16px; }
+.lp-land-leak-body { flex: 1; min-width: 0; }
+.lp-land-leak-viswrap { flex-shrink: 0; }
+@media (min-width: 560px) {
+  .lp-land-leak-card { flex-direction: row; align-items: center; }
+  .lp-land-leak-viswrap { width: 46%; }
+}
+.lp-land-leak-vis { border-radius: 12px; padding: 12px; }
+
+/* staggered / diagonal how-it-works cards — breaks the flat row */
+@media (min-width: 720px) {
+  .lp-land-how { padding-bottom: 120px; }
+  .lp-land-how .lp-land-cards { align-items: start; }
+  .lp-land-how .lp-land-cards > :nth-child(2) { transform: translateY(30px); }
+  .lp-land-how .lp-land-cards > :nth-child(3) { transform: translateY(60px); }
+}
+
+/* how-it-works step cards: product mockup on top, text below */
+.lp-land-step { padding: 0; overflow: hidden; }
+.lp-land-mock {
+  padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 132px; justify-content: center;
+  background: linear-gradient(160deg, var(--surface-sunk), color-mix(in srgb, var(--settled-bg) 60%, var(--surface)));
+  border-bottom: 1px solid var(--line);
+}
+.lp-land-mock-drop {
+  border: 1.5px dashed var(--line-strong); border-radius: 12px; padding: 16px;
+  text-align: center; font-size: 12.5px; color: var(--ink-3); background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+.lp-land-filechip {
+  display: inline-flex; align-items: center; gap: 8px; align-self: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; box-shadow: var(--shadow-sm);
+}
+.lp-land-chain {
+  margin: 0; font: 11.5px/1.75 var(--font-mono); color: var(--bg);
+  background: var(--ink); border-radius: 10px; padding: 12px 13px; white-space: pre; overflow-x: auto;
+}
+.lp-land-ticket {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 13px;
+  font-size: 12.5px; box-shadow: var(--shadow-sm);
+}
+
+/* soft brand accents behind bands so sections aren't flat/bare */
+.lp-land-hero, .lp-land-cta { position: relative; }
+.lp-land-hero::before {
+  content: ""; position: absolute; z-index: -1; inset: -10% -20% auto auto; width: 460px; height: 460px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--settled) 16%, transparent), transparent 70%);
+  filter: blur(8px); pointer-events: none;
+}
+.lp-land-cta::before {
+  content: ""; position: absolute; z-index: -1; inset: auto auto -20% -10%; width: 420px; height: 420px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--fees) 14%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+/* ---------- split auth screen: form on the left, a product-preview panel on the right
+   (the modern sign-up pattern). Single column on mobile; the showcase is desktop-only. ---------- */
+.lp-auth { min-height: 100dvh; display: grid; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .lp-auth { grid-template-columns: 1fr 1fr; } }
+.lp-auth-form {
+  display: flex; flex-direction: column; justify-content: center;
+  width: 100%; max-width: 440px; margin: 0 auto; padding: 48px 26px;
+}
+.lp-auth-form-mark { margin-bottom: 40px; }
+.lp-auth-foot { margin-top: 28px; display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--ink-3); }
+
+.lp-auth-show { display: none; }
+@media (min-width: 900px) {
+  .lp-auth-show {
+    display: block; position: relative; overflow: hidden;
+    background: linear-gradient(155deg, var(--settled-bg) 0%, var(--surface) 46%, var(--fees-bg) 100%);
+    border-left: 1px solid var(--line);
+  }
+}
+.lp-show-inner {
+  position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center;
+  padding: 8% 9%; gap: 16px;
+}
+.lp-show-head { font-size: clamp(24px, 2.6vw, 34px); line-height: 1.1; letter-spacing: -.03em; max-width: 15ch; }
+.lp-show-sub { color: var(--ink-2); font-size: 14.5px; line-height: 1.6; max-width: 42ch; margin-bottom: 8px; }
+.lp-show-card { padding: 16px 18px; box-shadow: var(--shadow-lg); }
+.lp-show-float { margin-left: 12%; }
+.lp-show-chip {
+  display: inline-flex; align-items: center; gap: 8px; align-self: flex-start;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 99px;
+  padding: 8px 14px; font-size: 12.5px; color: var(--ink-2); box-shadow: var(--shadow);
+}
+
+/* ---------- shell width: was a flat 900px everywhere, dead space past ~1100px viewports.
+   Grows further on real desktop widths instead of capping early. ---------- */
+.lp-shell { max-width: 900px; margin: 0 auto; }
+@media (min-width: 1100px) { .lp-shell { max-width: 1180px; } }
+@media (min-width: 1500px) { .lp-shell { max-width: 1320px; } }
+
+/* ---------- persistent app shell: sticky top bar present on every authenticated page,
+   so no screen is ever a bare floating <main> with no orientation. ---------- */
+.lp-topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.lp-topbar-in {
+  max-width: 900px; margin: 0 auto; padding: 13px 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+@media (min-width: 1100px) { .lp-topbar-in { max-width: 1180px; } }
+@media (min-width: 1500px) { .lp-topbar-in { max-width: 1320px; } }
+.lp-topbar-title {
+  font-size: 12.5px; color: var(--ink-3); border-left: 1px solid var(--line); padding-left: 14px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lp-nav { display: flex; align-items: center; gap: 6px; }
+.lp-nav-link {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13.5px; color: var(--ink-3); font-weight: 540; padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  transition: color .15s var(--ease-out), background-color .15s var(--ease-out);
+}
+.lp-nav-link:hover { color: var(--ink); background: var(--surface-sunk); }
+.lp-nav-link.active { color: var(--settled); background: var(--settled-bg); }
+.lp-nav-link svg { flex-shrink: 0; }
+/* !important is deliberate here: this is a pure visibility-toggle utility, and the
+   "jumbled nav" bug was exactly a cascade-order collision with .lp-menu-item's
+   display:flex (same specificity, later rule silently won at every viewport width).
+   A toggle class must not depend on where else in the file it happens to be declared. */
+.lp-nav-only-mobile { display: none !important; }
+@media (max-width: 640px) {
+  .lp-nav { display: none; }
+  .lp-nav-only-mobile { display: flex !important; }
+}
+.lp-menu-divider { border-top: 1px solid var(--line); margin: 4px 0; }
+
 /* ---------- logo mark ---------- */
 .lp-mark { display: inline-flex; align-items: center; gap: 9px; font-weight: 680; letter-spacing: -.025em; font-size: 16px; }
 .lp-mark i { width: 9px; height: 20px; border-radius: 3px; background: linear-gradient(var(--settled) 55%, var(--disputed) 55%); }
@@ -125,14 +366,18 @@ input, select, textarea {
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-strong);
   background: var(--surface);
-  font-weight: 530;
+  font-weight: 540;
   font-size: 13.5px;
+  transition: transform .12s var(--ease-out), box-shadow .16s var(--ease-out),
+              background-color .16s var(--ease-out), border-color .16s var(--ease-out), filter .16s var(--ease-out);
 }
-.lp-btn:hover:not(:disabled) { box-shadow: var(--shadow); }
+.lp-btn:hover:not(:disabled) { box-shadow: var(--shadow); border-color: var(--ink-3); }
 
 .lp-btn-primary {
   background: var(--settled); border-color: var(--settled); color: #fff; font-weight: 600;
+  box-shadow: 0 1px 2px rgba(14,124,107,.25);
 }
+.lp-btn-primary:hover:not(:disabled) { filter: brightness(1.05); border-color: var(--settled); box-shadow: 0 2px 8px rgba(14,124,107,.28); }
 
 .lp-btn-ghost {
   background: transparent; border-color: transparent; color: var(--ink-2);
@@ -219,18 +464,20 @@ input, select, textarea {
 .lp-menu-trigger::-webkit-details-marker { display: none; }
 .lp-menu-panel {
   position: absolute; right: 0; top: calc(100% + 6px);
-  min-width: 220px; z-index: 40;
+  min-width: 232px; z-index: 40;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-  box-shadow: var(--shadow); padding: 6px;
+  box-shadow: var(--shadow-lg); padding: 6px;
   display: flex; flex-direction: column;
 }
 .lp-menu-item {
-  display: flex; align-items: center; width: 100%; text-align: left;
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
   padding: 11px 12px; min-height: 44px;
   border-radius: var(--radius-sm); border: none; background: none; color: var(--ink);
   font-size: 14px;
 }
+.lp-menu-item svg { flex-shrink: 0; color: var(--ink-3); }
 .lp-menu-item:hover { background: var(--surface-sunk); }
+.lp-menu-item:hover svg { color: var(--ink-2); }
 
 /* ---------- pill / badge — matches prototype's classification pill exactly ---------- */
 .lp-pill {
@@ -238,6 +485,35 @@ input, select, textarea {
   background: color-mix(in srgb, var(--c) 13%, transparent); color: var(--c);
   border: 1px solid color-mix(in srgb, var(--c) 28%, transparent);
 }
+/* ---------- dropzone — the single most-repeated action in the product deserves real
+   craft, not a bare <input type=file>. Carried over from the validated prototype. ---------- */
+.lp-drop {
+  border: 1.5px dashed var(--line-strong); border-radius: var(--radius-lg);
+  padding: 40px 22px; text-align: center; background: var(--surface);
+  transition: border-color .18s var(--ease-out), background-color .18s var(--ease-out);
+  position: relative;
+}
+.lp-drop.hot { border-color: var(--settled); background: var(--settled-bg); }
+.lp-drop input[type="file"] {
+  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
+}
+.lp-drop-title { font-size: 16px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 5px; }
+
+.lp-filechip {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 11px;
+  padding: 9px 13px; font-size: 13px; box-shadow: var(--shadow-sm);
+}
+
+.lp-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.lp-step { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-3); }
+.lp-step .dot { width: 16px; height: 16px; border-radius: 99px; border: 1.5px solid var(--line-strong); flex-shrink: 0; }
+.lp-step.done { color: var(--ink); }
+.lp-step.done .dot { border-color: var(--settled); background: var(--settled); position: relative; }
+.lp-step.active { color: var(--ink); }
+.lp-step.active .dot { border-color: var(--settled); animation: lp-step-pulse 1s ease-in-out infinite; }
+@keyframes lp-step-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
 .lp-badge {
   display: inline-flex; align-items: center;
   font-size: 11px; font-weight: 560; padding: 2px 8px; border-radius: 99px;
